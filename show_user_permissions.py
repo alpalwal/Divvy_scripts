@@ -62,53 +62,37 @@ pp = pprint.PrettyPrinter(indent=4)
 
 requests.packages.urllib3.disable_warnings() # verify=False throws warnings otherwise
 
-# Username/password to authenticate against the API
-username = ""
-password = "" # Leave this blank if you don't want it in plaintext and it'll prompt you to input it when running the script. 
+# Key for the 
+api_key = ""
+
+# API URL
+base_url = ""
 
 # User in DivvyCloud
 divvy_user = ""
 
-# API URL
-base_url = "https://sales-demo.divvycloud.com"
+# # Param validation
+if not divvy_user:
+    divvy_user = input("Username in DivvyCloud: ")
 
-# Param validation
-if not username:
-    username = input("Username: ")
-
-if not password:
-    passwd = getpass.getpass('Password:')
+if not api_key:
+    key = getpass.getpass('API Key:')
 else:
-    passwd = password
+    key = api_key
 
 if not base_url:
     base_url = input("Base URL (EX: http://localhost:8001 or http://45.59.252.4:8001): ")
 
-if not divvy_user:
-    divvy_user = input("Username in DivvyCloud: ")
-
 # Full URL
 login_url = base_url + '/v2/public/user/login'
-
-# Shorthand helper function
-def get_auth_token():
-    response = requests.post(
-        url=login_url,
-        verify=False,
-        data=json.dumps({"username": username, "password": passwd}),
-        headers={
-            'Content-Type': 'application/json;charset=UTF-8',
-            'Accept': 'application/json'
-        })
-    return response.json()['session_id']
-
-auth_token = get_auth_token()
 
 headers = {
     'Content-Type': 'application/json;charset=UTF-8',
     'Accept': 'application/json',
-    'X-Auth-Token': auth_token
+    'Api-Key': key
 }
+
+
 
 # Get User info
 def get_users():

@@ -9,24 +9,11 @@ import sys
 
 requests.packages.urllib3.disable_warnings() # verify=False throws warnings otherwise
 
-# Username/password to authenticate against the API
-username = ""
-password = "" # Leave this blank if you don't want it in plaintext and it'll prompt you to input it when running the script. 
+# User API Key (generate in the profile section of the Divvy UI)
+api_key = ""
 
 # API URL
 base_url = ""
-
-# Param validation
-if not username:
-    username = input("Username: ")
-
-if not password:
-    passwd = getpass.getpass('Password:')
-else:
-    passwd = password
-
-if not base_url:
-    base_url = input("Base URL (EX: http://localhost:8001 or http://45.59.252.4:8001): ")
 
 try:
     api_user_username = str(sys.argv[1])
@@ -34,27 +21,22 @@ except:
     print("No user input. Exiting. Usage: python setup_api_user_as_admin.py <username>")
     exit()
 
+# # Param validation
+if not api_key:
+    key = getpass.getpass('API Key:')
+else:
+    key = api_key
+
+if not base_url:
+    base_url = input("Base URL (EX: http://localhost:8001 or http://45.59.252.4:8001): ")
+
 # Full URL
 login_url = base_url + '/v2/public/user/login'
-
-# Shorthand helper function
-def get_auth_token():
-    response = requests.post(
-        url=login_url,
-        verify=False,
-        data=json.dumps({"username": username, "password": passwd}),
-        headers={
-            'Content-Type': 'application/json;charset=UTF-8',
-            'Accept': 'application/json'
-        })
-    return response.json()['session_id']
-
-auth_token = get_auth_token()
 
 headers = {
     'Content-Type': 'application/json;charset=UTF-8',
     'Accept': 'application/json',
-    'X-Auth-Token': auth_token
+    'Api-Key': key
 }
 
 # Find your user ID
