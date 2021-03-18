@@ -8,20 +8,20 @@ from collections import defaultdict
 
 requests.packages.urllib3.disable_warnings() # verify=False throws warnings otherwise
 
-# Username/password to authenticate against the API
-username = ''
-password = ''
+# User API Key (generate in the profile section of the Divvy UI)
+api_key = ""
 
-version = ''
+# API URL
+base_url = ""
 
-# Param validation
-if not username:
-    username = input("Username: ")
-
-if not password:
-    passwd = getpass.getpass('Password:')
+# # Param validation
+if not api_key:
+    key = getpass.getpass('API Key:')
 else:
-    passwd = password
+    key = api_key
+
+if not base_url:
+    base_url = input("Base URL (EX: http://localhost:8001 or http://45.59.252.4:8001): ")
 
 if not version:
     version = input("Version with underscores - ex. 20_1_1: ")
@@ -41,19 +41,14 @@ packs_url = '/v2/public/insights/packs/list'
 filters_and_bots_url = '/v2/public/botfactory/function-registry/list'
 insights_url = '/v2/public/insights/list'
 
+# Full URL
+login_url = base_url + '/v2/public/user/login'
 
-# Shorthand helper function
-def get_auth_token():
-    response = requests.post(
-        url=login_url,
-        verify=False,
-        data=json.dumps({"username": username, "password": password}),
-        headers={
-            'Content-Type': 'application/json;charset=UTF-8',
-            'Accept': 'application/json'
-        })
-    return response.json()['session_id']
-auth_token = get_auth_token()
+headers = {
+    'Content-Type': 'application/json;charset=UTF-8',
+    'Accept': 'application/json',
+    'Api-Key': key
+}
 
 def get_info(url):
     response = requests.get(
