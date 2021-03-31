@@ -1,11 +1,10 @@
 #! /usr/bin/env python3
 """
-```
+
 terraform init
 terraform plan -out plan.out && terraform show -json plan.out ><plan JSON file name>
 
-export DIVVY_USERNAME=<DivvyCloud service account username>
-export DIVVY_PASSWORD=<DivvyCloud service account password>
+export DIVVY_API_KEY=<DivvyCloud API Key>
 ./api_test.py <Divvy base URL> <configuration name> <plan JSON file name>\
     --scan_name=<scan display name to show in scan listing>\
     --author=<scan display name to show in scan listing>\
@@ -13,7 +12,7 @@ export DIVVY_PASSWORD=<DivvyCloud service account password>
     --json_out=<HTML output file name>
     # --auth_for_submission  # only required if your DivvyCloud IaC
                              # installation requires auth
-```
+
 
 This script is designed to be used in a CI/CD pipeline to make requests to the
 DivvyCloud IaC Security scanning endpoint. Pass in a JSON plan as specified
@@ -55,27 +54,10 @@ parser.add_argument('--auth_for_submission', action='store_true', default=False,
                           "set this flag to authenticate for that submission."))
 
 
-# Username/password to authenticate against the API
-username, password = os.environ.get('DIVVY_USERNAME'), os.environ.get('DIVVY_PASSWORD')
+# API Key to authenticate against the API
+api_key = os.environ.get('DIVVY_API_KEY')
 
-
-def get_auth_token(login_url):
-    """
-    Log in to Divvy's authentication API and return a session token for
-    performing authenticated actions.
-    """
-    response = requests.post(
-        url=login_url,
-        data=json.dumps({'username': username, 'password': password}),
-        headers={
-            'Content-Type': 'application/json'
-        }
-    )
-    assert response.ok, 'Authentication failed with message: {}'.format(response.text)
-    return response.json()['session_id']
-
-
-def scan_template(base_url, scan_mode, scan_filename, session_token=None):
+def scan_template(base_url, scan_mode, scan_filename, api_key=None):
     """
     Use Divvy's `/scan` API to submit a JSON-formatted Terraform plan.
     """
@@ -105,8 +87,8 @@ def scan_template(base_url, scan_mode, scan_filename, session_token=None):
         'Content-Type': 'application/json;charset=UTF-8',
         'Accept': accept_value,
     }
-    if session_token:
-        headers['X-Auth-Token'] = session_token
+    if api_key:
+        headers['Api-Key'] = api_key
 
     response = requests.post(
         url=base_url + '/v3/iac/scan',
@@ -145,21 +127,15 @@ if __name__ == '__main__':
     # If `/scan` requires authentication (`--auth_for_submission`), or if we
     # will be getting both JSON and HTML reports and thus need to hit the
     # authenticated `/scans/id` API, get a session token.
-    session_token = None
-    if args.auth_for_submission or two_phases:
-        if not username:
-            raise ValueError("Authentication is required for this action, but "
-                             "you didn't provide a username via DIVVY_USERNAME.")
-        if password is None:
-            raise ValueError("Authentication is required for this action, but "
-                             "you didn't provide a username via DIVVY_PASSWORD.")
-        session_token = get_auth_token(args.divvy_url + '/v2/public/user/login')
+    if two_phases and not api_key:
+        raise ValueError("Authentication is required for this action, but "
+                            "you didn't provide an API Key DIVVY_API_KEY.")
 
     result = scan_template(
         base_url=base_url,
         scan_mode=scan_mode,
         scan_filename=scan_filename,
-        session_token=session_token  # May be `None`
+        api_key=api_key  # May be `None`
     )
     status_code = result.status_code
 
@@ -173,17 +149,21 @@ if __name__ == '__main__':
             headers={
                 'Content-Type': 'application/json;charset=UTF-8',
                 'Accept': 'text/html',
-                'X-Auth-Token': session_token
+                'Api-Key': api_key
             }
         )
         with open(html_out, 'w') as f:
             f.write(response.text)
+
 
     # Fail based on the API results from the `/scan` request. Customize this to
     # your use case.
     if status_code == 200:
         message = "[DivvyCloud]: Scan completed successfully.  All insights have passed."
         exit_code = 0
+    elif status_code == 202:
+        message = "[DivvyCloud]: Scan completed successfully, but with warnings.  All failure-inducing insights have passed, but some warning-inducing insights did not."
+        exit_code = 0  # Change to a nonzero positive integer to fail the build
     elif status_code == 406:
         message = "[DivvyCloud]: Scan completed, but one or more insights have failed.  Please check the DivvyCloud console for more information."
         exit_code = 0  # Change to a nonzero positive integer to fail the build
