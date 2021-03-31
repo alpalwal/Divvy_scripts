@@ -11,7 +11,7 @@ export DIVVY_API_KEY=<DivvyCloud API Key>
     --html_out=<HTML output file name>\
     --json_out=<HTML output file name>
     # --auth_for_submission  # only required if your DivvyCloud IaC
-                             # installation requires auth
+                             # installation requires auth OR you're exporting both HTML and JSON outputs
 
 
 This script is designed to be used in a CI/CD pipeline to make requests to the
