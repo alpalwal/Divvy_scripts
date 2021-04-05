@@ -5,7 +5,6 @@ from botocore.vendored import requests
 import boto3
 from collections import defaultdict
 import os
-from botocore.vendored import requests
 from base64 import b64decode
 
 def lambda_handler(event, context):
@@ -73,9 +72,9 @@ def lambda_handler(event, context):
     bots_path = '/tmp/' + bots_filename
 
 
-    # # Build insights CSV
+    # Build insights CSV
     with open(insights_path, 'w') as insightsfile:
-        headers = ['Name', 'Description', 'Default Severity (5 is high)', 'AWS', 'AZURE', 'GCP', 'ALICLOUD', 'K8S', 'OCI']
+        headers = ['Name', 'Description', 'Default Severity (5 is high)', 'Updated At', 'AWS', 'AZURE', 'GCP', 'ALICLOUD', 'K8S', 'OCI']
         writer = csv.writer(insightsfile)
         packs = get_info('/v2/public/insights/packs/list')
         pack_ids = []
@@ -94,6 +93,7 @@ def lambda_handler(event, context):
         for insight in get_info('/v2/public/insights/list'):
             if insight['source'] == 'custom':
                 continue
+
             clouds = insight['supported_clouds'] if insight['supported_clouds'] else []
             aws = 'Y' if 'AWS' in clouds else 'N'
             azure = 'Y' if 'AZURE_ARM' in clouds else 'N'
@@ -101,7 +101,7 @@ def lambda_handler(event, context):
             alicloud = 'Y' if 'ALICLOUD' in clouds else 'N'
             k8s = 'Y' if 'K8S' in clouds else 'N'
             oci = 'Y' if 'OCI' in clouds else 'N'
-            cells = [insight['name'], insight['description'], insight['severity'], aws, azure ,gcp, alicloud, k8s, oci]
+            cells = [insight['name'], insight['description'], insight['severity'], insight['updated_at'], aws, azure ,gcp, alicloud, k8s, oci]
             for pack_id in pack_ids:
                 compliance_rule = ''
                 for pack in packs:
@@ -114,12 +114,13 @@ def lambda_handler(event, context):
             writer.writerow(cells)
     insightsfile.close()
 
+
     # Get filter and bots list (one endpoint for both)
     filters_and_bots_data = get_info('/v2/public/botfactory/function-registry/list')
 
     # Make filter spreadsheet
     with open(filters_path, 'w') as filtersfile:
-        headers = ['Name', 'Supported Resources', 'Description', 'AWS', 'AZURE', 'GCP', 'ALICLOUD', 'K8S', 'OCI']
+        headers = ['Name', 'Supported Resources', 'Version', 'Description', 'AWS', 'AZURE', 'GCP', 'ALICLOUD', 'K8S', 'OCI']
         writer = csv.writer(filtersfile)
         writer.writerow(headers)
 
@@ -139,7 +140,7 @@ def lambda_handler(event, context):
             if row['name'] == 'Instance Without Recent Snapshot (VMware Only)' or row['name'] == 'Instance VMware Tools Status':
                 continue
 
-            cells = [row['name'], str(row['supported_resources']), row['description'], aws, azure, gcp, alicloud, k8s, oci]
+            cells = [row['name'], str(row['supported_resources']), row['version'], row['description'], aws, azure, gcp, alicloud, k8s, oci]
             writer.writerow(cells)
     filtersfile.close()
 
