@@ -13,9 +13,8 @@ import json
 import requests
 import getpass
 
-# Username/password to authenticate against the API
-username = ""
-password = "" # Leave this blank if you don't want it in plaintext and it'll prompt you to input it when running the script. 
+# Key 
+api_key = ""
 
 # API URL
 base_url = ""
@@ -26,14 +25,10 @@ pack_description = "Cost controls"
 # packaged_insight_ids = [281, 8, 11, 13, 15, 23, 41, 54, 60, 71, 141, 17, 90, 63, 98, 109, 117, 123, 130, 175, 2, 9, 165, 20, 21, 34, 37, 49, 59, 80, 85, 94, 142]
 
 # Param validation
-
-if not username:
-    username = input("Username: ")
-
-if not password:
-    passwd = getpass.getpass('Password:')
+if not api_key:
+    key = getpass.getpass('API Key:')
 else:
-    passwd = password
+    key = api_key
 
 if not base_url:
     base_url = input("Base URL (EX: http://localhost:8001 or http://45.59.252.4:8001): ")
@@ -68,10 +63,10 @@ insight_configs.append({
   ],
   "scopes": [],
   "severity": 1,
-  "owner_resource_id": null,
-  "template_id": null,
-  "badges": null,
-  "badge_filter_operator": null
+  "owner_resource_id": None,
+  "template_id": None,
+  "badges": None,
+  "badge_filter_operator": None
 })
 
 # Instances above 4 cores 
@@ -325,24 +320,10 @@ insight_configs.append({
 
 # insight_configs.append()
 
-
-# Shorthand helper function
-def get_auth_token():
-    response = requests.post(
-        url=login_url,
-        data=json.dumps({"username": username, "password": passwd}),
-        headers={
-            'Content-Type': 'application/json;charset=UTF-8',
-            'Accept': 'application/json'
-        })
-    return response.json()['session_id']
-
-auth_token = get_auth_token()
-
 headers = {
     'Content-Type': 'application/json;charset=UTF-8',
     'Accept': 'application/json',
-    'X-Auth-Token': auth_token
+    'Api-Key': key
 }
 
 # Create a new pack
